@@ -8,11 +8,6 @@ import { ModeEditRounded, DeleteForeverRounded } from '@mui/icons-material';
 function UserCollection() {
     let seq = 0;
     const songContext = useContext(PlayerContext);
-    const albumTracks = [];
-    // AlbumData.map((a) => 
-    //     SongData.map((s) => s.albumid === a.albumid && (
-    //         albumTracks.push(s)
-    // )));
     return (
         <div>
             <div className='formCreateALbum'>
@@ -42,23 +37,6 @@ function UserCollection() {
                         <h3 id='fontVI'>{a.albumname}</h3>
                         <div className='ownTracks'>
                             {SongData.map((s) => s.albumid === a.albumid && (
-                                // <div className='track'>
-                                //     <p>{seq += 1}</p>
-                                //     <img src={s.songImg} alt={s.songname} />
-                                //     <p>{s.songname}</p>
-                                //     <p className='artist'>
-                                //         {s.artist.map((p) => 
-                                //             <span>{p.artistname}</span>
-                                //         )}
-                                //     </p>
-                                //     <p>{s.albumname}</p>
-                                //     <p>{s.genre}</p>
-                                //     <p>{s.streams}</p>
-                                //     <p>
-                                //         <ModeEditRounded fontSize='small' sx={{cursor: 'pointer'}} />
-                                //         <DeleteForeverRounded fontSize='small' sx={{cursor: 'pointer'}} />
-                                //     </p>
-                                // </div>
                                 <UserTrackItem item={s} song={songContext} tracks={SongData} index={seq++}/>
                             ))}
                         </div>

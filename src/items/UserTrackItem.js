@@ -8,7 +8,7 @@ import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import { ModeEditRounded, DeleteForeverRounded } from '@mui/icons-material'
-import { Alert, Button, IconButton } from '@mui/material';
+import { Button, IconButton } from '@mui/material';
 import { authActions } from "../stores/auth";
 import '../styles/UserTrackItem.css';
 

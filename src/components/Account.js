@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import Popup from "reactjs-popup";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "reactjs-popup/dist/index.css";
 import { LoginRounded, LogoutRounded, Error,
         VpnKeyRounded, AccountCircleRounded,
@@ -9,6 +9,7 @@ import { Button, IconButton, Alert } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { authActions } from "../stores/auth";
 import ForgotPassword from "./ForgotPassword";
+import axios from "axios";
 
 function Header() {
   const signupRef = useRef();
@@ -39,13 +40,13 @@ function Header() {
     setShowAlert(true);
   };
   const dispatch = useDispatch();
-
   //display User Logo
   const { isAuthed, account } = useSelector((state) => state.auth);
   //login
   const emailLoginRef = useRef();
   const pwLoginRef = useRef();
-  const handleLogin = () => {
+  
+  async function login (event) {
     const email = emailLoginRef.current.value;
     const password = pwLoginRef.current.value;
     console.log(email, password);
@@ -53,19 +54,41 @@ function Header() {
       return setAlertError("Please fill out all field!");
     }
     //sign in successfully
-    setError(null);
-    setShowAlert(false);
-    const account = { email, password };
-    dispatch(authActions.setAuth(account));
-    navigate("/home");
-    closeLoginPopup();
+    event.preventDefault();
+    try {
+      const user = { 
+        email: email,
+        password: password,
+      };
+      await axios.post('http://localhost:9098/api/login', user).then((res) => {
+        console.log(res.data);
+        if (res.data == null) {
+          alert("Email or password is incorrect!");
+        } else if (res.data != null) {
+          setError(null);
+          setShowAlert(false);
+          const account = res.data;
+          dispatch(authActions.setAuth(account));
+          navigate("/home");
+          closeLoginPopup();
+          alert("Successfully");
+        }
+      }, fail => {
+        console.error(fail);
+      });
+    } catch (error) {
+      alert(error);
+    }
   };
+  const user = isAuthed ? JSON.parse(localStorage.getItem("user")) : [];
   //Signup
   const usernameRef = useRef();
   const emailRef = useRef();
   const passwordRef = useRef();
   const passwordConfirmRef = useRef();
-  const handleSignup = () => {
+
+  //api signup
+  async function signup(event) {
     const username = usernameRef.current.value;
     const email = emailRef.current.value;
     const password = passwordRef.current.value;
@@ -88,14 +111,26 @@ function Header() {
     if (password !== passwordConfirm) {
       return setAlertError("The password confirmation does not match!");
     }
-    // sign up successfully
+    event.preventDefault();
+    try {
+      const user = { 
+        email: email,
+        password: password,
+        acc: {
+          username: username,
+        }
+      };
+      await axios.post('http://localhost:9098/api/acc', user);
+      alert("Sign up Successfully!");
+    } catch (error) {
+      alert(error);
+    }
     setError(null);
     setShowAlert(false);
-    const account = { username, email, password };
-    dispatch(authActions.setAuth(account));
     navigate("/home");
     closeSignupPopup();
-  };
+  }
+
   //forgot pw
   const [isOpenFP, setIsOpenFP] = useState(false);
   const forgotPw = () => {
@@ -113,8 +148,8 @@ function Header() {
         <div>
           <Popup contentStyle={{ zIndex: "10", width: "14%", minWidth: "max-content", padding: 0, }}
             trigger={
-              <img src="https://res.cloudinary.com/dpwehcnso/image/upload/v1687111974/z3hbswytzdpwwxmfgllc.png"
-                alt="avt" title={JSON.parse(localStorage.getItem("user")).username} /> }
+              <img src={user.avatar}
+                alt="avt" title={user.username} /> }
             position={"bottom right"} >
             <div className="accountItemPopup row1" onClick={(e) => { navigate("/user"); }}>
               <AccountCircleRounded
@@ -198,7 +233,7 @@ function Header() {
                 {error}
             </Alert>)}
             <input type="button" className="btnSubmit" id="fontEN"
-              onClick={(e) => { handleLogin(); }} value={`Submit`} />
+              onClick={(e) => { login(e); }} value={`Submit`} />
           </form>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <p onClick={forgotPw} style={{color: 'yellow', fontWeight: 'bold'}}>Forgot Password?</p>
@@ -238,7 +273,7 @@ function Header() {
                 sx={{ margin: "10px 0" }}>
                 {error}
             </Alert>)}
-            <input type="button" className="btnSubmit" id="fontEN" name="submitSignup" onClick={(e) => { handleSignup(); }} value={`Submit`} />
+            <input type="button" className="btnSubmit" id="fontEN" name="submitSignup" onClick={(e) => { signup(e); }} value={`Submit`} />
           </form>
           <div style={{ textAlign: "center" }}>
             <p>Already have an account?{" "}

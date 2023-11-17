@@ -1,33 +1,66 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { SongData } from '../data/SongData'
 import "../styles/Song.css"
 import { PlayArrowRounded, PauseRounded } from '@mui/icons-material';
 import { FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
-import { AlbumData } from '../data/AlbumData';
 import TrackItem from '../items/TrackItem';
 import PlayerContext from '../PlayerContext';
+import axios from 'axios';
 
 function Album() {
   const location = useLocation();
   const path = location.pathname.split("/");
   let id = parseInt(path[2]);
-  const album = [], songs = [];
+
+  const [songs, setSongs]=useState([]);
+  const [album, setAlbum] = useState([]);
+  useEffect(() => {
+    axios.get(`http://localhost:9098/api/album/${id}`)
+    .then(response => {
+      setAlbum(response.data);
+    });
+    axios.get(`http://localhost:9098/api/song/album=${id}`)
+      .then(response => {
+        setSongs(response.data);
+      });
+  }, []);
   let streams = 0;
-  AlbumData.map((item) => {
-    if (item.albumid === id)
-      album.push(item);
+  songs.map((item) => {
+    streams += item.streams;
   });
-  SongData.map((item) => {
-    if (item.albumid === id) {
-      songs.push(item);
-      streams += item.streams;
-    }
-  });
-  const { isAuthed } = useSelector((state) => state.auth);
+  
+  const { isAuthed } = useSelector((state) => state.auth); //user
+  const user = isAuthed ? JSON.parse(localStorage.getItem("user")) : [];
+
   const [fav, setFav] = useState(false);
+  useEffect(() => {
+    if (isAuthed) {
+      axios.get(`http://localhost:9098/api/user/${user.id}/islikedalbum/${id}`)
+          .then(response => {
+              setFav(response.data);
+      });
+    }
+  }, [fav, id, isAuthed, user.id]);
+  async function likeAlbum(event) {
+      event.preventDefault();
+      try {
+          await axios.put(`http://localhost:9098/api/user/${user.id}/likeAlbum/${id}`);
+      } catch (error) {
+          alert(error);
+      }
+  }
+
+  async function unlikeAlbum(event) {
+      event.preventDefault();
+      try {
+          await axios.put(`http://localhost:9098/api/user/${user.id}/unlikeAlbum/${id}`);
+      } catch (error) {
+          alert(error);
+      }
+  }
+
   const [play, setPlay] = useState(false);
   const handlePlay = () => {
       setPlay(!play);
@@ -58,42 +91,37 @@ function Album() {
 
   return (
       <div className='albumContainer'>
-          {album.map((item)=>
-          <>
-          <div className='trackHeader'>
-              <img id="i" src={item.albumimg} alt={item.albumname} />
-              <div className='trackDetails'>
-                  <p>{ (songs.length) > 1 ? 'Album' : 'Single' }</p>
-                  <h1>{item.albumname}</h1>
-                  <p>
-                      <Link to={`/artist/${item.poster}`}>{item.owner}</Link>
-                      &nbsp;• <span title={new Date(item.releaseDate).toUTCString()}>{new Date(item.releaseDate).getFullYear()}</span>
-                      &nbsp;• {songs.length} songs
-                      &nbsp;• {dot3digits(streams)} streams</p>
-              </div>
-          </div>
-          <div className='trackActions'>
-              <IconButton className='playerIcon' onClick={playAlbum}>
-                  {song.isUsing && play ? <PauseRounded className='trackActionIcon' /> : <PlayArrowRounded className='trackActionIcon' />}
-              </IconButton>
-              <IconButton className='playerIcon' onClick={handleFav}>
-                  {isAuthed ? (fav ? <FavoriteRounded className='favIcon trackActionIcon' /> : <FavoriteBorderRounded className='trackActionIcon'/>) : <FavoriteBorderRounded className='trackActionIcon'/>}
-              </IconButton>
-          </div>
-          <div className='trackList'>
-            <div className='tl-header'>
-              <p>#</p>
-              <p>Title</p>
-              <p>Streams</p>
-              <p>Duration</p>
+        <div className='trackHeader'>
+            <img id="i" src={album.albumimg} alt={album.albumname} />
+            <div className='trackDetails'>
+                <p>{ (songs.length) > 1 ? 'Album' : 'Single' }</p>
+                <h1>{album.albumname}</h1>
+                <p>
+                    <Link to={`/artist/${album.poster}`}>{album.owner}</Link>
+                    &nbsp;• <span title={new Date(album.releaseDate).toUTCString()}>{new Date(album.releaseDate).getFullYear()}</span>
+                    &nbsp;• {songs.length} songs
+                    &nbsp;• {dot3digits(streams)} streams</p>
             </div>
-            {songs.map((item,key) => 
-              <TrackItem item={item} index={key} tracks={songs} song={song} />
-            )}
+        </div>
+        <div className='trackActions'>
+            <IconButton className='playerIcon' onClick={playAlbum}>
+                {song.isUsing && play ? <PauseRounded className='trackActionIcon' /> : <PlayArrowRounded className='trackActionIcon' />}
+            </IconButton>
+            <IconButton className='playerIcon' onClick={handleFav}>
+                {isAuthed ? (fav ? <FavoriteRounded className='favIcon trackActionIcon' onClick={(e)=>unlikeAlbum(e)} /> : <FavoriteBorderRounded className='trackActionIcon' onClick={(e)=>likeAlbum(e)}/>) : <FavoriteBorderRounded className='trackActionIcon'/>}
+            </IconButton>
+        </div>
+        <div className='trackList'>
+          <div className='tl-header'>
+            <p>#</p>
+            <p>Title</p>
+            <p>Streams</p>
+            <p>Duration</p>
           </div>
-          </>
+          {songs.map((item,key) => 
+            <TrackItem item={item} index={key} tracks={songs} song={song} />
           )}
-      
+        </div>      
       </div>
   )
 }

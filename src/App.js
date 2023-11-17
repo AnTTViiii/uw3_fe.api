@@ -13,7 +13,6 @@ import Account from './pages/Account';
 import Album from "./pages/Album";
 import Song from './pages/Song';
 import Artist from './pages/Artist';
-import Search from './pages/Search';
 import NotFound from './pages/NotFound';
 
 function App() {
@@ -34,10 +33,6 @@ function App() {
         {
           path: "library",
           element: <Library />,
-        },
-        {
-          path: "search",
-          element: <Search />,
         },
         {
           path: "newreleases",

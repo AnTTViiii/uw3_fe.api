@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Popup from "reactjs-popup";
 import { Link, useNavigate } from 'react-router-dom';
 import "reactjs-popup/dist/index.css";
@@ -9,12 +9,118 @@ import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import { ModeEditRounded, DeleteForeverRounded } from '@mui/icons-material'
 import { Button, IconButton } from '@mui/material';
+import { Autocomplete, TextField } from '@mui/material';
 import { authActions } from "../stores/auth";
 import '../styles/UserTrackItem.css';
+import axios from 'axios';
 
 function UserTrackItem({item, song, index, tracks}) {
     const { isAuthed } = useSelector((state) => state.auth); //user
+    const user = isAuthed ? JSON.parse(localStorage.getItem("user")) : [];
+    const cloudName = "dpwehcnso";
+    var POST_URL = "https://api.cloudinary.com/v1_1/" + cloudName + "/upload";
+
+    const [audioUrl, setAudioUrl] = useState("");
+    const [audioDuration, setAudioDuration] = useState();
+    const [selectedArtist, setSelectedArtist] = useState([]);
+    const [selectedAlbum, setSelectedAlbum] = useState([]);
+
+    //Upload song
+    const sNameRef = useRef();
+    const albumidRef = useRef();
+    const artistsRef = useRef([]);
+    const genreRef = useRef();
+    const lyricsRef = useRef();
+    const priceRef = useRef();
+
+    const upLoadAudio = (file) => {
+        var formdata = new FormData();
+        formdata.append("file", file[0]);
+        formdata.append("upload_preset", "musicplayer_audio");
+
+        axios.post(POST_URL, formdata).then((res)=>{
+            console.log(res.data); 
+            setAudioUrl(res.data.url); 
+            setAudioDuration(res.data.duration); 
+            alert("Upload file successfully!")
+        });
+    }
+
+    const handleUpdate = async(e, song) => {
+        e.preventDefault();
+        try {
+            const performers = [];
+            selectedArtist.length === 0 
+            ?   song.performer.map((a)=>performers.push({'id': a.id}))
+            :   selectedArtist.map((a)=>performers.push({'id': a.id}));
+            const body= {
+                songname: sNameRef.current.value === undefined ? song.songname : sNameRef.current.value,
+                albumid: selectedAlbum.id === undefined ? song.albumid : selectedAlbum.id,
+                img: selectedAlbum.img === undefined ? song.img : selectedAlbum.img,
+                audio: audioUrl === '' ? song.audio : audioUrl,
+                duration: audioUrl === '' ? song.duration : Math.ceil(audioDuration),
+                performer: performers,
+                genre: genreRef.current.value === '' ? song.genre : genreRef.current.value,
+                lyrics: lyricsRef.current.value === '' ? song.lyrics : lyricsRef.current.value,
+                price: priceRef.current.value === '' ? song.price : priceRef.current.value
+            };
+            await axios.put(`http://localhost:9098/api/song/${song.id}`, body);
+            alert("Updated Successfully!");
+          } catch (error) {
+            alert(error);
+        }
+        closeEditPopup();
+    }
+
+    const handleRemove = async(e) => {
+        e.preventDefault();
+        try {
+            await axios.delete(`http://localhost:9098/api/song/${item.id}`);
+            alert("Deleted Successfully!");
+          } catch (error) {
+            alert(error);
+        }
+        closeRemovePopup();
+    }
+
+    const [albums, setAlbums] = useState([]);
+    const [artists, setArtists] = useState([]);
+    useEffect(() => {
+        axios.get(`http://localhost:9098/api/artist/${user.id}/album`)
+            .then(response => {
+                setAlbums(response.data);
+        });
+
+        axios.get('http://localhost:9098/api/user')
+            .then((res)=>setArtists(res.data));
+    }, []);
+
     const [fav, setFav] = useState(false);
+    useEffect(() => {
+        axios.get(`http://localhost:9098/api/user/${user.id}/islikedsong/${item.id}`)
+            .then(response => {
+                setFav(response.data);
+        });
+    }, [fav, item.id, user.id]);
+
+    async function likeSong(event) {
+        event.preventDefault();
+        try {
+          await axios.put(`http://localhost:9098/api/user/${user.id}/likeSong/${item.id}`);
+        } catch (error) {
+          alert(error);
+        }
+    }
+
+    async function unlikeSong(event) {
+        event.preventDefault();
+        try {
+          await axios.put(`http://localhost:9098/api/user/${user.id}/unlikeSong/${item.id}`);
+        } catch (error) {
+          alert(error);
+        }
+    }
+
     const handleFav = () => {
         setFav(!fav);
     }
@@ -28,6 +134,7 @@ function UserTrackItem({item, song, index, tracks}) {
     function dot3digits(x) {
         return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
     }
+
     const editRef = useRef();
     const removeRef = useRef();
 
@@ -45,13 +152,6 @@ function UserTrackItem({item, song, index, tracks}) {
         setShowAlert(true);
     };
     const dispatch = useDispatch();
-
-    const handleUpdate = () => {
-        closeEditPopup();
-    }
-    const handleRemove = () => {
-        closeRemovePopup();
-    }
 
     return (
         <div className='userTrackContainer'>
@@ -71,24 +171,24 @@ function UserTrackItem({item, song, index, tracks}) {
                         localStorage.setItem("play", JSON.stringify(true));
                         localStorage.setItem("currentTime", 0);
                         song.setCurrentTime(0);
-                    }} style={(song.isUsing && song.play && JSON.parse(localStorage.getItem("song")).songid === item.songid) ? {display: `flex`} : {display: `none`}}>
-                    {(song.isUsing && song.play && JSON.parse(localStorage.getItem("song")).songid === item.songid) ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon style={{display: `flex`, zIndex:2}} />}
+                    }} style={(song.isUsing && song.play && JSON.parse(localStorage.getItem("song")).songid === item.id) ? {display: `flex`} : {display: `none`}}>
+                    {(song.isUsing && song.play && JSON.parse(localStorage.getItem("song")).songid === item.id) ? <PauseRoundedIcon /> : <PlayArrowRoundedIcon style={{display: `flex`, zIndex:2}} />}
                 </IconButton>
             </p>
-            <img src={item.songImg} alt={item.songname} />
-            <p title={item.songname}><Link to={`/song/${item.songid}`}>{item.songname}</Link></p>
+            <img src={item.img} alt={item.songname} />
+            <p title={item.songname}><Link to={`/song/${item.id}`}>{item.songname}</Link></p>
             <p className='artist'>
-                {item.artist.map((p) => 
-                    <span><Link to={`/artist/${p.artistid}`}>{p.artistname}</Link></span>
+                {item.performer?.map((p) => 
+                    <span><Link to={`/artist/${p.id}`}>{p.username}</Link></span>
                 )}
             </p>
-            <p><Link to={`/album/${item.albumid}`}>{item.albumname}</Link></p>
+            <p><Link to={`/album/${item.albumid}`}>{item.album.albumname}</Link></p>
             <p>{item.genre}</p>
             <p>{dot3digits(item.streams)}</p>
             <p className='last-col'>
                 <IconButton onClick={handleFav} className='favsIcon'>
                     {isAuthed ? (
-                        fav ? <FavoriteRoundedIcon className='favIcon' /> : <FavoriteBorderRoundedIcon />
+                        fav ? <FavoriteRoundedIcon className='favIcon' onClick={(e)=>unlikeSong(e)} /> : <FavoriteBorderRoundedIcon onClick={(e)=>likeSong(e)} />
                     ) : ( <FavoriteBorderRoundedIcon /> )}
                 </IconButton>
                 <p id='duration'>{getStringDuration(item.duration)}</p>
@@ -98,21 +198,45 @@ function UserTrackItem({item, song, index, tracks}) {
                 <ModeEditRounded fontSize='small' sx={{cursor: 'pointer'}} onClick={openEditPopup} />
                 <DeleteForeverRounded fontSize='small' sx={{cursor: 'pointer'}} onClick={openRemovePopup} />
             </p>
-            <Popup ref={editRef} modal
+            <Popup ref={editRef} modal closeOnDocumentClick={false}
                 contentStyle={{ zIndex: "11", margin: "auto", borderRadius: "10px", padding: "20px 20px 5px", width: "45%", maxWidth: "400px", }}>
                 <div>
                     <div id="fontVI" className="btnCloseForm" onClick={closeEditPopup}>✖️</div>
                     <h2 align="center" style={{marginBlock: 0}}>Update Song Properties</h2>
                     <div className="updateSong">
                         <form>
-                            <p>Song title: 	<input type='text' value={item.songname} /></p>
-                            <p>Album: <input type='text' value={item.albumname} /></p>
-                            <p title='Each genre must be separated by a slash (/).'>Genre: <input type='text' value={item.genre} /></p>
-                            <p>Lyrics <textarea rows="3" value={item.lyrics} /></p>
-                            <p>Choose audio file: <input type='file' /></p>
-                            <p>Price (eth): <input type='text' value='0.0025' /></p>
+                            <p>Song title: 	<input type='text' ref={sNameRef} defaultValue={item.songname} /></p>
+                            <p>Choose audio file: 
+                                <input type='file' accept="audio/*" onChange={(e) => upLoadAudio(e.target.files)} />
+                            </p>
+                            <p>Album:
+                                <Autocomplete id="tags-standard" className='artistLiveSearch' ref={albumidRef}
+                                    options={albums}
+                                    getOptionLabel={(option) => option.albumname}
+                                    onChange={(e, a)=>setSelectedAlbum(a)}
+                                    renderInput={(params) => (
+                                        <TextField {...params} variant="standard" placeholder="Select Album ..." />
+                                    )}
+                                    sx={{ width: "65%" }}
+                                />
+                            </p>
+                            <p>Artists: 
+                                <Autocomplete multiple id="tags-standard" className='artistLiveSearch' ref={artistsRef}
+                                    options={artists} disableCloseOnSelect={true}
+                                    getOptionLabel={(option) => option.username}
+                                    onChange={(e, a)=>{setSelectedArtist(a)}}
+                                    renderInput={(params) => (
+                                        <TextField {...params} variant="standard" placeholder="Select Artists ..." />
+                                    )}
+                                    sx={{ width: "65%" }}
+                                />
+                            </p>
+                            <p title='Each genre must be separated by a slash (/).'>Genre: <input type='text' placeholder='Pop/Dance/...' ref={genreRef} defaultValue={item.genre} /></p>
+                            <p>Lyrics <textarea rows="3" ref={lyricsRef} defaultValue={item.lyrics} /></p>
+
+                            <p>Price (eth): <input type='text' placeholder='0.0025' ref={priceRef} defaultValue={item.price} /></p>
                             <input type="button" className="btnSubmit" id="fontEN"
-                                onClick={(e) => { handleUpdate(); }} value={`Update`} />
+                                onClick={(e) => { handleUpdate(e, item); }} value={`Update`} />
                         </form>
                     </div>
                 </div>
@@ -130,7 +254,7 @@ function UserTrackItem({item, song, index, tracks}) {
                         onClick={closeRemovePopup} > Cancel </Button>
                     <Button variant="contained"
                         sx={{ backgroundColor: "#2a2854", ":hover": { backgroundColor: "#2a2835" }, }}
-                        onClick={(e) => { handleRemove(); }}> Confirm </Button>
+                        onClick={(e) => { handleRemove(e); }}> Confirm </Button>
                 </div>
                 </div>
             </Popup>

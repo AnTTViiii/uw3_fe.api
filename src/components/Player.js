@@ -1,39 +1,41 @@
-import React, { useContext, useState, useRef } from 'react'
+import React, { useContext, useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import '../styles/MusicPlayer.css'
 import {  SkipNextRounded, SkipPreviousRounded, 
           PlayArrowRounded, PauseRounded,
           VolumeUpRounded, PlaylistPlay, VolumeOffRounded,
           FavoriteBorderRounded, FavoriteRounded } from '@mui/icons-material';
-import { IconButton, styled, Slider, Stack } from '@mui/material';
+import { IconButton, Slider } from '@mui/material';
 import PlayerContext from "../PlayerContext";
 import LocalPlaylistContext from "../LocalPlaylistContext";
+import axios from 'axios';
+import { useSelector } from 'react-redux';
 
 function Player() {
   const localPlaylist = useContext(LocalPlaylistContext);
   const player = useContext(PlayerContext);
+  const songLocalStorage = localStorage.getItem("song") !== null
+  ? JSON.parse(localStorage.getItem("song"))
+  : player.song;
   const tracklist = player.isUsing ? player.tracks : [];
   const playlist = localStorage.getItem("playlist") !== null
     ? JSON.parse(localStorage.getItem("playlist"))
     : player.playlist;
   const tracklistLength = tracklist.length;
   let index = player.songIndex;
-  let song = player.isUsing ? playlist[index] : "";
-  // let songid = player.isUsing ? playlist[index].songid : "0";
-  // let songname = player.isUsing ? playlist[index].songname : "untitled song";
-  // let performer = player.isUsing ? playlist[index].artist : [];
+  let song = player.isUsing ? (playlist[index] !== undefined ? playlist[index] : songLocalStorage) : "";
   const audioRef = useRef();
   const [duration, setDuration] = useState(0); //seconds
   const [currentTime, setCurrentTime] = useState(player.currentTime);
   const [play, setPlay] = useState(player.play);
-  // const [play, setPlay] = useState("false");
-  // const playPause = () => {
-  //   setPlay(!play);
-  // };
-  // let audio = player.isUsing ? playlist[index].audio : "audio.mp3";
+
   window.onbeforeunload = function() {
-    localStorage.setItem("song", JSON.stringify(song));
-    localStorage.setItem("index", JSON.stringify(player.songIndex));
+    if(song!==""){
+      localStorage.setItem("song", JSON.stringify(song));
+    }
+    if(index!==0){
+      localStorage.setItem("index", JSON.stringify(index));
+    }
   };
   const handleLoadedData = () => {
     setDuration(Math.ceil(audioRef.current.duration));
@@ -109,7 +111,36 @@ function Player() {
     localStorage.removeItem("currentTime");
     player.setUsing(false);
   };
+
+  const { isAuthed } = useSelector((state) => state.auth); //user
+  const user = isAuthed ? JSON.parse(localStorage.getItem("user")) : [];
+
   const [fav, setFav] = useState(false);
+  useEffect(() => {
+      if (isAuthed && player.isUsing) {
+          axios.get(`http://localhost:9098/api/user/${user.id}/islikedsong/${song.id}`)
+              .then(response => {
+                  setFav(response.data);
+          });
+      }
+  }, [fav, isAuthed, song.id, user.id]);
+  async function likeSong(event) {
+      event.preventDefault();
+      try {
+        await axios.put(`http://localhost:9098/api/user/${user.id}/likeSong/${song.id}`);
+      } catch (error) {
+        alert(error);
+      }
+  }
+
+  async function unlikeSong(event) {
+      event.preventDefault();
+      try {
+        await axios.put(`http://localhost:9098/api/user/${user.id}/unlikeSong/${song.id}`);
+      } catch (error) {
+        alert(error);
+      }
+  }
   const handleFav = () => {
     setFav(!fav);
   }
@@ -117,9 +148,23 @@ function Player() {
   const handleMute = () => {
     setMute(!mute);
   }
+
+  const playerMinimize = () => {
+    document.getElementById('musicplayer').classList.add('miniPlayer');
+    document.getElementById('musicplayer').classList.add('onleft');
+    document.getElementById('musicplayer').classList.remove('musicplayer');
+  }
+
+  const playerMaximize = () => {
+    document.getElementById('musicplayer').classList.add('musicplayer');
+    document.getElementById('musicplayer').classList.remove('miniPlayer');
+    document.getElementById('musicplayer').classList.remove('onleft');
+  }
+
   return (
+    //miniPlayer onleft
     player.isUsing && (
-    <div className='musicplayer' style={player.isUsing ? {backgroundImage: `url(${song.songImg})`} : { display: "none" }}>
+    <div id='musicplayer' className='musicplayer' style={player.isUsing ? {backgroundImage: `url(${song.img})`} : { display: "none" }}>
       <audio ref={audioRef} src={song.audio} onLoadedData={handleLoadedData}
         onTimeUpdate={() => {
           setCurrentTime(audioRef.current.currentTime);
@@ -134,18 +179,34 @@ function Player() {
         }}
       />
       <div className='playerDisplay'>
+        <div className='windowControl'>
+          <button id='fontVI' style={{fontWeight: '900', background: 'transparent', cursor: 'pointer', border: 'none', borderRadius: '50%', color: 'white', position: 'absolute', top: '0px', left: '0px', fontSize: 'smaller'}}
+            className='minimize'
+            onClick={() => {playerMinimize()}}
+          >–</button>
+          <button id='fontVI' style={{background: 'transparent', cursor: 'pointer', border: 'none', borderRadius: '50%', color: 'white', position: 'absolute', top: '0px', left: '0px', fontSize: 'smaller'}}
+            className='maximize'
+            onClick={() => {playerMaximize()}}
+          >▢</button>
+          <button id='fontVI' style={{background: 'transparent', cursor: 'pointer', border: 'none', borderRadius: '50%', color: 'white', position: 'absolute', top: '0px', right: '0px', fontSize: 'smaller'}}
+            onClick={() => {
+              removePlayerStatus();
+              // localStorage.setItem("openLocalPlaylist", false);
+              // localPlaylist.setOpen(false);
+            }}>✖️</button>
+        </div>
         <button id='fontVI' style={{background: 'transparent', cursor: 'pointer', border: 'none', borderRadius: '50%', color: 'white', position: 'absolute', top: '0px', right: '0px', fontSize: 'smaller'}}
           onClick={() => {
             removePlayerStatus();
-            localStorage.setItem("openLocalPlaylist", false);
-            localPlaylist.setOpen(false);
+            // localStorage.setItem("openLocalPlaylist", false);
+            // localPlaylist.setOpen(false);
           }}>✖️</button>
         <div id='scroll-container' className='info'>
-          <p id="scroll-text"><Link id='fontVI' to={`/song/${song.songid}`}><b>{song.songname}</b></Link></p>
+          <p id="scroll-text"><Link id='fontVI' to={`/song/${song.id}`}><b>{song.songname}</b></Link></p>
           <p id="scroll-text">
-          {song.artist.map((artist, index) => 
+          {song.performer.map((artist, index) => 
             <span id='fontVI' key={index} item={artist} className="artist">
-              <Link to={`/artist/${artist.artistid}`}>{artist.artistname}</Link></span>
+              <Link to={`/artist/${artist.id}`}>{artist.username}</Link></span>
           )}
           </p>
         </div>
@@ -183,9 +244,16 @@ function Player() {
             </div>
             <div className='playlist'>
               <IconButton className='playerIcon' onClick={handleFav}>
-                {fav ? <FavoriteRounded className='favIcon' style={{fontSize: `18px`}} /> : <FavoriteBorderRounded style={{fontSize: `18px`}} />}
+                {isAuthed ? (
+                  fav ? <FavoriteRounded className='favIcon' style={{fontSize: `18px`}} onClick={(e)=>unlikeSong(e)} /> : <FavoriteBorderRounded style={{fontSize: `18px`}} onClick={(e)=>likeSong(e)}/>
+                ) : ( <FavoriteBorderRounded style={{fontSize: `18px`}} /> )}
               </IconButton>
-              <PlaylistPlay style={{cursor: 'pointer', fontSize: `18px`}} />
+              {/* <PlaylistPlay style={{cursor: 'pointer', fontSize: `18px`}} 
+                // sx={localPlaylist.open ? { color: "yellow" } : { color: "white" }}
+                onClick={() => {
+                  localStorage.setItem("openLocalPlaylist", !localPlaylist.open);
+                  localPlaylist.setOpen(!localPlaylist.open);
+                }} /> */}
             </div>
           </div>
         </div>

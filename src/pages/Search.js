@@ -5,9 +5,6 @@ import { AlbumData } from '../data/AlbumData';
 import { ArtistData } from '../data/ArtistData';
 import PlayerContext from '../PlayerContext';
 function Search() {
-    const location = useLocation();
-    // const path = location.pathname.split("/");
-    // let id = parseInt(path[2]);
     const [searchTerm, setSearchTerm] = useState("");
     const albums = [], songs = [], artists = [];
     if (searchTerm !== "") {

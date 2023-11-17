@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import Player from "./Player";
 import Footer from "./Footer";
 import Header from "./Header";
+// import PlayingQueue from "./PlayingQueue";
 import "../styles/AppRoot.css";
 function AppRoot() {
     return (
@@ -17,6 +18,7 @@ function AppRoot() {
                 <Footer />
             </div>
             <Player />
+            {/* <PlayingQueue /> */}
         </div>
     )
 }

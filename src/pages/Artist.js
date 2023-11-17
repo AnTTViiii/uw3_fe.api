@@ -1,43 +1,78 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { SongData } from '../data/SongData'
+import axios from 'axios'
 import "../styles/Song.css"
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
 import { StarBorderRounded, StarRounded } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
-import { AlbumData } from '../data/AlbumData';
 import TrackItem from '../items/TrackItem';
-import { ArtistData } from '../data/ArtistData';
 import ArtistAlbumItem from '../items/ArtistAlbumItem';
 import PlayerContext from '../PlayerContext';
 
 function Artist() {
   const location = useLocation();
   const path = location.pathname.split("/");
-  // let id = location.state.id;
   let id = parseInt(path[2]);
-  const artist = [], albums = [], songs = [];
+
+  const [artist, setArtist] = useState([]);
+  const [songs, setSongs]=useState([]);
+  const [albums, setAlbums] = useState([]);
+  const [colabAlbums, setColabAlbums] = useState([]);
+  useEffect(() => {
+    axios.get(`http://localhost:9098/api/user/${id}`)
+    .then(response => {
+      setArtist(response.data);
+    });
+    axios.get(`http://localhost:9098/api/artist/${id}/song`)
+      .then(response => {
+        setSongs(response.data);
+      });
+    axios.get(`http://localhost:9098/api/artist/${id}/album`)
+      .then(response => {
+        setAlbums(response.data);
+      });
+    axios.get(`http://localhost:9098/api/artist/${id}/colabAlbum`)
+    .then(response => {
+      setColabAlbums(response.data);
+    });
+  }, [artist, songs, albums, colabAlbums]);
+
+  console.log('Total of songs: ' + songs.length);
   let streams = 0;
-  ArtistData.map((item) => {
-    if (item.artistid === id)
-      artist.push(item);
-  })
-  AlbumData.map((item) => {
-    if (item.poster === id)
-      albums.push(item);
-  });
-  SongData.map((item) => {
-    item.artist.map((a) => {
-      if (a.artistid === id) {
-        songs.push(item);
-        streams += item.streams;
+  songs.map((s) => streams += s.streams);
+
+  const { isAuthed } = useSelector((state) => state.auth); //user
+  const user = isAuthed ? JSON.parse(localStorage.getItem("user")) : [];
+
+  const [isFollow, setFollow] = useState(false);
+  useEffect(() => {
+    if (isAuthed) {
+      axios.get(`http://localhost:9098/api/user/${user.id}/isfollow/${id}`)
+          .then(response => {
+              setFollow(response.data);
+      });
+    }
+  }, [id, isAuthed, isFollow, user.id]);
+  async function follow(event) {
+      event.preventDefault();
+      try {
+        await axios.put(`http://localhost:9098/api/user/${user.id}/follow/${id}`);
+      } catch (error) {
+        alert(error);
       }
-    })
-  });
-  const { isAuthed } = useSelector((state) => state.auth);
-  const [follow, setFollow] = useState(false);
+  }
+
+  async function unfollow(event) {
+      event.preventDefault();
+      try {
+        await axios.put(`http://localhost:9098/api/user/${user.id}/unfollow/${id}`);
+      } catch (error) {
+        alert(error);
+      }
+  }
+
   const [play, setPlay] = useState(false);
   const handlePlay = () => {
       setPlay(!play);
@@ -67,17 +102,13 @@ function Artist() {
   };
   return (
     <div className='artistContainer'>
-      {artist.map((item)=>
-      <>
-      <div className='trackHeader' 
-        // style={{background: `url(${item.avatar}) no-repeat`}}
-      >
-          <img id="i" src={item.avatar} alt={item.artistname} />
+      <div className='trackHeader'>
+          <img id="i" src={artist.avatar} alt={artist.username} />
           <div className='trackDetails'>
               <p>Artist</p>
-              <h1>{item.artistname}</h1>
+              <h1>{artist.username}</h1>
               <p>
-                {dot3digits(item.follower)} followers
+                {dot3digits(parseInt(artist['followercount']))} followers
                 &nbsp;• {songs.length} songs
                 &nbsp;• {albums.length} albums
                 &nbsp;• {dot3digits(streams)} streams
@@ -89,7 +120,7 @@ function Artist() {
               {play ? <PauseRoundedIcon className='trackActionIcon' /> : <PlayArrowRoundedIcon className='trackActionIcon' />}
           </IconButton>
           <IconButton className='playerIcon' onClick={handleFollow}>
-            {isAuthed ? (follow ? <StarRounded className='starIcon trackActionIcon' /> : <StarBorderRounded className='trackActionIcon'/>) : <StarBorderRounded className='trackActionIcon'/>}
+            {isAuthed ? (isFollow ? <StarRounded className='starIcon trackActionIcon' onClick={(e)=>unfollow(e)} /> : <StarBorderRounded className='trackActionIcon' onClick={(e)=>follow(e)} />) : <StarBorderRounded className='trackActionIcon'/>}
           </IconButton>
       </div>
       <div className='trackList'>
@@ -113,12 +144,10 @@ function Artist() {
       </div>
       <div className='artistAlbums'>
         <h2>💿 Collab Albums</h2>
-        <div>{albums.map((item,key) => 
+        <div>{colabAlbums.map((item,key) => 
           <ArtistAlbumItem item={item} seq={key} />
         )}</div>
       </div>
-      </>
-      )}
     </div>
   )
 }

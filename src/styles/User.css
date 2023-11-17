@@ -17,6 +17,40 @@
 }
 .accHeader .avatar {
     position: relative;
+    display:inline-block;
+    >div {
+        background-color: #534aff;
+        color: white;
+        border-radius: 5px;
+        text-align: center;
+        padding: 5px 8px;
+        margin: 0;
+        width: fit-content;
+        align-items: center;
+        display: none;
+    }
+    &:hover .avt_hover {
+        display: inline-block;
+    }
+    .avt_hover {
+        position:absolute;
+        height: 5.5vh;
+        top:40%;
+        left:50%;
+        transform: translate(-50%, 0);
+        /* display:inline-block; */
+        -webkit-box-sizing:border-box;
+        -moz-box-sizing:border-box;
+        box-sizing:border-box;
+    }
+    &:hover >img {
+        filter: brightness(50%);
+        -webkit-transition: all 0.3s ease;
+        -moz-transition: all 0.3s ease;
+        -o-transition: all 0.3s ease;
+        -ms-transition: all 0.3s ease;
+        transition: all 0.3s ease;
+    }
 }
 .accHeader .avatar img {
     width: 25vh;
@@ -262,3 +296,24 @@ textarea {
         }
     }
 }
+.artistLiveSearch {
+    color: white !important;
+    .css-i4bv87-MuiSvgIcon-root {
+        fill: white !important;
+    }
+    .css-qzbt6i-MuiButtonBase-root-MuiIconButton-root-MuiAutocomplete-popupIndicator {
+        background-color: rgba(255, 255, 255, 0.158) !important;
+    }
+}
+.css-1q79v3g-MuiButtonBase-root-MuiChip-root {
+    background-color: rgba(255, 255, 255, 0.158) !important;
+    color: yellow !important;
+    .css-i4bv87-MuiSvgIcon-root {
+        fill: gray !important;
+    }
+}
+.css-1x51dt5-MuiInputBase-input-MuiInput-input {
+    color: white !important;
+
+}
+

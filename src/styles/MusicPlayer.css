@@ -7,7 +7,7 @@
     overflow: hidden;
     background-image: url("https://res.cloudinary.com/dpwehcnso/image/upload/v1687112812/golawbg2dbs6gk4btw7l.jpg");
     background-repeat: no-repeat;
-    background-size: 100% 100%;
+    background-size: cover;
     /* background: linear-gradient(60deg, rgb(48, 3, 120) 16%,  rgb(255, 0, 0) 100%); */
     /* background-color: rgba(255, 255, 255, 0.147); */
     border-radius: 10px;
@@ -15,6 +15,9 @@
     align-items: center;
     text-align: center;
     column-gap: 15px;
+    .maximize {
+        display: none;
+    }
     .playerDisplay {
         height: calc(100% - 15px);
         background-color: rgba(0, 0, 0, 0.599);
@@ -77,7 +80,7 @@
     width: 20px !important;
     height: 20px !important;
 }
-/* .onleft {
+.onleft {
     left: 0;
   -webkit-transform-origin: 0 50%;
      -moz-transform-origin: 0 50%;
@@ -89,7 +92,7 @@
       -ms-transform: rotate(-90deg) translate(-56%, 50%);
        -o-transform: rotate(-90deg) translate(-56%, 50%);
           transform: rotate(-90deg) translate(-56%, 50%);
-} */
+}
 
 #scroll-container {
     overflow: hidden;
@@ -128,5 +131,63 @@
       -moz-transform: translateX(-100%);
       -webkit-transform: translateX(-100%);
       transform: translateX(-100%);
+    }
+}
+
+.miniPlayer {
+    position: fixed;
+    bottom: 120px;
+    height: 10vh;
+    width: 28vh;
+    overflow: hidden;
+    background: linear-gradient(60deg, rgb(48, 3, 120) 16%,  rgb(255, 0, 0) 100%) !important;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 0 0 10px 10px;
+    margin: auto;
+    align-items: center;
+    text-align: center;
+    column-gap: 15px;
+
+    .minimize {
+        display: none;
+    }
+
+    .info {
+        display: none;
+    }
+    .playcontrol {
+        .lastRow {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            .volume, .playlist {
+                display: flex;
+                align-items: center;
+                column-gap: 5px;
+            }
+        }
+
+        .playerRow2 {
+            display: none;
+        }
+
+        >div {
+            display: flex;
+            justify-content: space-between;
+            margin: auto;
+            width: fit-content;
+            flex-shrink: 0;
+            align-items: center;
+            >p {
+                margin: 0;
+                font-size: small;
+            }
+        }
+        .playerIcon {
+            color: white;
+            margin: 0;
+            padding: 0 5px;
+        }
     }
 }
